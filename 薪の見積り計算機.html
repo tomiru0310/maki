@@ -1,0 +1,981 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>薪の見積り計算機</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Noto+Serif+JP:wght@500;600&display=swap">
+<style>
+:root{
+  --paper:#FBFAF7;
+  --panel:#F2EFE8;
+  --ink:#1A1A18;
+  --ink-2:#5C584F;
+  --forest:#1F4A3A;
+  --forest-soft:#E4EDE8;
+  --ember:#B5462B;
+  --ember-soft:#F7E8E2;
+  --rule:#D8D4CC;
+  --rule-hard:#B9B3A8;
+  --font-display:'Noto Serif JP','Hiragino Mincho ProN',serif;
+  --font-body:'Noto Sans JP','Hiragino Sans',sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --paper:#15171A; --panel:#1E2226; --ink:#EDEAE4; --ink-2:#A39D94;
+    --forest:#72AF91; --forest-soft:#1C2A24; --ember:#E08264; --ember-soft:#2C211D;
+    --rule:#30353A; --rule-hard:#474D53; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#15171A; --panel:#1E2226; --ink:#EDEAE4; --ink-2:#A39D94;
+  --forest:#72AF91; --forest-soft:#1C2A24; --ember:#E08264; --ember-soft:#2C211D;
+  --rule:#30353A; --rule-hard:#474D53; color-scheme:dark;
+}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{
+  margin:0; background:var(--paper); color:var(--ink);
+  font-family:var(--font-body); font-size:15px; line-height:1.7;
+  padding-bottom:96px; -webkit-text-size-adjust:100%;
+}
+@media (min-width:881px){ body{padding-bottom:40px} }
+img{max-width:100%}
+
+.wrap{
+  max-width:1080px; margin:0 auto;
+  padding-left:max(16px,env(safe-area-inset-left,0px));
+  padding-right:max(16px,env(safe-area-inset-right,0px));
+  padding-block:0 32px;
+}
+
+/* ── ヘッダ ── */
+header.top{background:var(--forest);color:#FBFAF7}
+.top-in{
+  max-width:1080px;margin:0 auto;
+  padding-left:max(16px,env(safe-area-inset-left,0px));
+  padding-right:max(16px,env(safe-area-inset-right,0px));
+  padding-block:24px 20px;
+  display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;
+}
+.kicker{font-size:11.5px;letter-spacing:.14em;opacity:.82;margin-bottom:8px}
+h1{font-family:var(--font-display);font-weight:600;font-size:clamp(24px,5.4vw,33px);
+   letter-spacing:.06em;line-height:1.2;margin:0;text-wrap:balance}
+.top-note{font-size:12.5px;opacity:.84;margin:10px 0 0;max-width:60ch}
+.modesw{
+  display:flex;gap:0;border:1.5px solid rgba(251,250,247,.45);flex-shrink:0;
+}
+.modesw button{
+  font-family:inherit;font-size:12px;font-weight:700;letter-spacing:.04em;
+  padding:7px 13px;border:0;background:transparent;color:#FBFAF7;cursor:pointer;
+}
+.modesw button[aria-pressed="true"]{background:#FBFAF7;color:var(--forest)}
+
+.staffband{
+  background:var(--ember);color:#FFF;font-size:11.5px;font-weight:700;letter-spacing:.1em;
+  text-align:center;padding:5px 12px;
+}
+
+/* ── グリッド ── */
+.cols{display:grid;grid-template-columns:1fr;gap:28px;margin-top:26px}
+@media (min-width:881px){
+  .cols{grid-template-columns:1fr 360px;gap:36px;align-items:start}
+  .side{position:sticky;top:20px}
+}
+.col{min-width:0;display:flex;flex-direction:column;gap:26px}
+section{min-width:0}
+h2{font-family:var(--font-display);font-weight:600;font-size:16.5px;letter-spacing:.05em;margin:0 0 4px}
+.step{display:inline-block;font-size:10.5px;letter-spacing:.12em;color:var(--forest);font-weight:700;margin-bottom:6px}
+.hint{font-size:12.5px;color:var(--ink-2);margin:0 0 12px}
+
+/* ── タブ ── */
+.tabs{display:flex;gap:0;border-bottom:1.5px solid var(--rule);margin-bottom:16px;flex-wrap:wrap}
+.tabs button{
+  font-family:inherit;font-size:13.5px;font-weight:700;color:var(--ink-2);
+  background:transparent;border:0;border-bottom:3px solid transparent;
+  padding:9px 14px;cursor:pointer;margin-bottom:-1.5px;
+}
+.tabs button[aria-pressed="true"]{color:var(--forest);border-bottom-color:var(--forest)}
+
+/* ── 用途カード ── */
+.uses{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:9px}
+.use{
+  display:flex;flex-direction:column;gap:3px;text-align:left;
+  border:1.5px solid var(--rule);background:transparent;color:inherit;
+  font-family:inherit;padding:11px 13px;cursor:pointer;min-width:0;
+  transition:border-color .12s,background .12s;
+}
+.use:hover{border-color:var(--rule-hard)}
+.use[aria-pressed="true"]{border-color:var(--forest);background:var(--forest-soft)}
+.use .u-name{font-size:14px;font-weight:700;line-height:1.4}
+.use .u-sub{font-size:11.5px;color:var(--ink-2)}
+.use .u-eg{font-size:11.5px;color:var(--ember);font-weight:500;margin-top:2px}
+
+:is(.use,button,input,select,summary):focus-visible{outline:2px solid var(--forest);outline-offset:2px}
+
+/* ── 入力 ── */
+.fields{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end}
+.field{display:flex;flex-direction:column;gap:5px;min-width:0}
+.field label{font-size:11.5px;letter-spacing:.06em;color:var(--ink-2);font-weight:500}
+.inline{display:flex;align-items:baseline;gap:6px}
+input[type=number]{
+  font-family:inherit;font-size:20px;font-weight:700;font-variant-numeric:tabular-nums;
+  width:98px;padding:7px 10px;border:1.5px solid var(--rule-hard);
+  background:var(--paper);color:var(--ink);
+}
+input.small{font-size:15px;font-weight:500;width:86px;padding:6px 9px}
+input.tiny{font-size:14px;font-weight:500;width:74px;padding:5px 8px}
+.unit{font-size:13px;color:var(--ink-2)}
+.slider{width:100%;max-width:440px;accent-color:var(--forest);margin-top:12px}
+.radio-row{display:flex;flex-wrap:wrap;gap:8px}
+.radio-row label{
+  display:flex;gap:6px;align-items:center;font-size:13px;font-weight:500;
+  border:1.5px solid var(--rule);padding:7px 11px;cursor:pointer;color:var(--ink);
+}
+.radio-row label:has(input:checked){border-color:var(--forest);background:var(--forest-soft)}
+.radio-row input{accent-color:var(--forest);margin:0}
+.chk{display:flex;gap:8px;align-items:flex-start;font-size:13px;cursor:pointer}
+.chk input{accent-color:var(--forest);margin-top:4px;flex-shrink:0}
+.chk .c-sub{display:block;font-size:11.5px;color:var(--ink-2)}
+.presets{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:13px}
+.presets button{
+  font-family:inherit;font-size:12px;font-weight:500;color:var(--ink);
+  border:1.5px solid var(--rule);background:transparent;padding:6px 11px;cursor:pointer;
+}
+.presets button:hover{border-color:var(--forest);background:var(--forest-soft)}
+.dims{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
+.times{font-size:19px;color:var(--ink-2);padding-bottom:7px}
+
+/* ── 換算 ── */
+.equiv{border-top:2px solid var(--ink);padding-top:13px}
+.equiv-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:1px}
+.eq{background:var(--paper);padding:10px 13px;min-width:0;box-shadow:0 0 0 1px var(--rule)}
+.eq-k{font-size:11px;color:var(--ink-2);letter-spacing:.04em}
+.eq-v{font-family:var(--font-display);font-size:19px;font-weight:600;
+  font-variant-numeric:tabular-nums;line-height:1.3}
+.eq-v small{font-size:12px;font-weight:400;font-family:var(--font-body)}
+
+/* ── 配送 ── */
+.zonebox{border:1.5px solid var(--rule);padding:14px}
+.zonecalc{
+  display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;
+  background:var(--panel);padding:11px 13px;margin-top:13px;font-size:12.5px;line-height:1.65;
+}
+.zonecalc b{font-variant-numeric:tabular-nums}
+
+/* ── 見積りカード ── */
+.quote{border:2px solid var(--forest);background:var(--paper)}
+.q-head{background:var(--forest);color:#FBFAF7;padding:12px 17px}
+.q-head .q-k{font-size:11px;letter-spacing:.13em;opacity:.84}
+.q-head .q-t{font-family:var(--font-display);font-size:17px;font-weight:600;letter-spacing:.05em}
+.q-body{padding:15px 17px}
+.q-rows{width:100%;border-collapse:collapse;font-size:13.5px}
+.q-rows td{padding:8px 0;border-bottom:1px solid var(--rule);vertical-align:top}
+.q-rows td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;padding-left:10px}
+.q-rows tr.disc td{color:var(--ember)}
+.q-sub{font-size:11.5px;color:var(--ink-2)}
+.q-total{display:flex;justify-content:space-between;align-items:baseline;gap:12px;
+  border-top:2px solid var(--forest);margin-top:12px;padding-top:12px}
+.q-total .t-k{font-size:13px;font-weight:700;color:var(--forest)}
+.q-total .t-v{font-family:var(--font-display);font-size:29px;font-weight:600;color:var(--forest);
+  font-variant-numeric:tabular-nums;line-height:1}
+.q-per{font-size:11.5px;color:var(--ink-2);margin-top:9px;font-variant-numeric:tabular-nums;line-height:1.6}
+.q-warn{background:var(--panel);font-size:12px;line-height:1.65;padding:11px 14px;margin-top:13px}
+.q-warn ul{margin:0;padding-left:1.1em}
+.q-warn li+li{margin-top:5px}
+.q-warn .w-h{font-weight:700;color:var(--forest);font-size:12px;margin-bottom:5px}
+button.act,a.act{
+  display:block;box-sizing:border-box;text-align:center;text-decoration:none;
+  font-family:inherit;font-size:13px;font-weight:700;width:100%;padding:11px;margin-top:13px;
+  cursor:pointer;border:1.5px solid var(--forest);background:transparent;color:var(--forest);
+}
+a.act{background:var(--forest);color:#FBFAF7}
+button.act:hover{background:var(--forest-soft)}
+a.act:hover{opacity:.88}
+.contact{margin-top:16px;padding-top:13px;border-top:1px solid var(--rule);
+  font-size:12px;line-height:1.8;color:var(--ink-2)}
+.contact strong{color:var(--ink);font-size:12.5px}
+
+/* ── 社内パネル ── */
+.staffbox{border-top:2px solid var(--ember);margin-top:16px;padding-top:12px}
+.staffbox h3{font-size:12px;font-weight:700;color:var(--ember);letter-spacing:.08em;margin:0 0 9px}
+.i-rows{width:100%;border-collapse:collapse;font-size:12.5px}
+.i-rows td{padding:5px 0;border-bottom:1px dotted var(--rule)}
+.i-rows td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;padding-left:8px}
+.i-rows tr.gp td{font-weight:700;color:var(--forest);border-bottom:none;padding-top:8px}
+.i-rows tr.bad td{font-weight:700;color:var(--ember);border-bottom:none;padding-top:8px}
+.carrier{margin-top:12px;padding:10px 12px;font-size:12.5px;line-height:1.6;border-left:4px solid var(--forest);background:var(--forest-soft)}
+.carrier.warn{border-left-color:var(--ember);background:var(--ember-soft)}
+.carrier .c-name{font-weight:700}
+.flag{margin-top:11px;padding:10px 12px;font-size:12.5px;line-height:1.65;
+  background:var(--ember-soft);border-left:4px solid var(--ember)}
+
+/* ── 設定 ── */
+.setgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.setgrid .field label{font-size:11px}
+
+/* ── 目安表 ── */
+.ref{border-top:2px solid var(--ink);padding-top:13px}
+.ref-tbl{width:100%;border-collapse:collapse;font-size:12.5px}
+.ref-tbl th{text-align:left;font-size:11px;letter-spacing:.05em;font-weight:500;color:var(--ink-2);
+  border-bottom:1.5px solid var(--rule-hard);padding:0 10px 7px 0}
+.ref-tbl td{padding:8px 10px 8px 0;border-bottom:1px solid var(--rule);vertical-align:top}
+.ref-tbl td:last-child,.ref-tbl th:last-child{padding-right:0}
+.ref-tbl td.n{font-variant-numeric:tabular-nums;white-space:nowrap}
+.scroller{overflow-x:auto;-webkit-overflow-scrolling:touch}
+
+/* ── 下端バー ── */
+.totalbar{
+  position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--forest);color:#FBFAF7;
+  display:flex;justify-content:space-between;align-items:center;gap:12px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));
+  padding-right:max(16px,env(safe-area-inset-right,0px));
+  padding-top:11px;padding-bottom:calc(11px + env(safe-area-inset-bottom,0px));
+}
+.totalbar .b-k{font-size:11.5px;letter-spacing:.1em;opacity:.86}
+.totalbar .b-v{font-family:var(--font-display);font-size:23px;font-weight:600;
+  font-variant-numeric:tabular-nums;line-height:1.1}
+@media (min-width:881px){ .totalbar{display:none} }
+
+footer{border-top:1px solid var(--rule);margin-top:34px;padding-top:15px;
+  font-size:11.5px;color:var(--ink-2);line-height:1.7}
+/* ── 問い合わせパネル ── */
+button.act.primary{background:var(--forest);color:var(--paper);border-color:var(--forest)}
+button.act.primary:hover{background:var(--forest);opacity:.88}
+.sendbox{margin-top:13px;border:1.5px solid var(--forest);background:var(--forest-soft);padding:13px 15px}
+.s-h{font-size:12.5px;font-weight:700;color:var(--forest);letter-spacing:.04em;margin:0 0 6px}
+.s-t{font-size:12px;line-height:1.75;color:var(--ink-2);margin:0 0 10px}
+.s-row{display:flex;align-items:center;gap:10px;width:100%;box-sizing:border-box;text-align:left;
+  font-family:inherit;background:var(--paper);border:1px solid var(--rule);
+  padding:9px 12px;margin:0 0 7px;cursor:pointer}
+.s-row:hover{border-color:var(--forest)}
+.s-k{flex:0 0 40px;font-size:11px;font-weight:700;color:var(--forest);letter-spacing:.06em}
+.s-v{flex:1 1 auto;min-width:0;font-size:13.5px;font-weight:700;color:var(--ink);word-break:break-all}
+.s-c{flex:0 0 auto;font-size:10.5px;color:var(--ink-2);letter-spacing:.04em}
+.s-open{display:block;width:100%;box-sizing:border-box;margin:3px 0 0;padding:2px 0;
+  background:none;border:none;font-family:inherit;font-size:11.5px;color:var(--forest);
+  text-decoration:underline;cursor:pointer;text-align:center}
+
+.vbanner{background:var(--forest);color:#FBFAF7;font-size:13px;font-weight:700;
+  letter-spacing:.03em;line-height:1.6;padding:11px 15px;margin-bottom:16px}
+
+.toast{
+  position:fixed;left:50%;transform:translateX(-50%);
+  bottom:calc(84px + env(safe-area-inset-bottom,0px));z-index:40;
+  background:var(--ink);color:var(--paper);font-size:12.5px;font-weight:500;
+  padding:9px 16px;opacity:0;transition:opacity .2s;pointer-events:none;
+}
+.toast.on{opacity:1}
+[hidden]{display:none!important}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="top-in">
+    <div>
+      <div class="kicker">株式会社motoyu　薪工場</div>
+      <h1>薪の見積り計算機</h1>
+      <p class="top-note">必要な量と金額の目安が出ます。立米やkgで考えなくて大丈夫です。焚き火を何時間されるか、薪を置く棚がどれくらいの大きさかでお入れください。</p>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+<div class="vbanner" id="villageBanner" hidden>西粟倉村内のお客さまへ。配送料はいただきません。薪棚へのお積み込みまで承ります。</div>
+
+  <div class="cols">
+    <div class="col">
+
+      <section>
+        <div class="step">STEP 1</div>
+        <h2>必要な量を出す</h2>
+        <div class="tabs" role="group" aria-label="入力方法">
+          <button type="button" data-tab="use" aria-pressed="true">用途から</button>
+          <button type="button" data-tab="shelf" aria-pressed="false">薪棚のサイズから</button>
+          <button type="button" data-tab="direct" aria-pressed="false">重さ・量を直接</button>
+        </div>
+
+        <!-- 用途から -->
+        <div id="tab-use">
+          <p class="hint">何に使うかを選んでください。用途によって薪の長さが変わります。</p>
+          <div class="uses" id="uses"></div>
+          <div class="fields" style="margin-top:16px">
+            <div class="field">
+              <label for="amt" id="amtLab">時間</label>
+              <div class="inline"><input type="number" id="amt" min="0" step="1" value="4"><span class="unit" id="amtUnit">時間</span></div>
+            </div>
+            <div class="field" id="repWrap">
+              <label for="rep">何回分</label>
+              <div class="inline"><input type="number" id="rep" class="small" min="1" step="1" value="1"><span class="unit">回</span></div>
+            </div>
+          </div>
+          <input type="range" id="amtRange" class="slider" min="1" max="24" step="1" value="4" aria-label="量のスライダー">
+        </div>
+
+        <!-- 棚から -->
+        <div id="tab-shelf" hidden>
+          <p class="hint">薪を置く棚の内寸を入れてください。実測した棚の充填率76%で計算します。</p>
+          <div class="presets">
+            <button type="button" data-shelf="90,200,40">90×200×40cm</button>
+            <button type="button" data-shelf="180,150,40">180×150×40cm</button>
+            <button type="button" data-shelf="270,190,30">270×190×30cm</button>
+          </div>
+          <div class="dims">
+            <div class="field"><label for="sw">幅</label><div class="inline"><input type="number" id="sw" class="small" min="1" step="5" value="90"><span class="unit">cm</span></div></div>
+            <span class="times">×</span>
+            <div class="field"><label for="sh">高さ</label><div class="inline"><input type="number" id="sh" class="small" min="1" step="5" value="200"><span class="unit">cm</span></div></div>
+            <span class="times">×</span>
+            <div class="field"><label for="sd">奥行</label><div class="inline"><input type="number" id="sd" class="small" min="1" step="5" value="40"><span class="unit">cm</span></div></div>
+            <div class="field"><label for="stimes">何回分</label><div class="inline"><input type="number" id="stimes" class="small" min="1" step="1" value="1"><span class="unit">回</span></div></div>
+          </div>
+          <p class="hint" id="shelfOut" style="margin-top:13px"></p>
+        </div>
+
+        <!-- 直接 -->
+        <div id="tab-direct" hidden>
+          <p class="hint">重さか体積で直接入れてください。</p>
+          <div class="fields">
+            <div class="field">
+              <label for="dqty" id="dLab">重さ</label>
+              <div class="inline"><input type="number" id="dqty" min="0" step="10" value="200"><span class="unit" id="dUnit">kg</span></div>
+            </div>
+            <div class="field">
+              <label>単位</label>
+              <div class="radio-row">
+                <label><input type="radio" name="dunit" value="kg" checked>kg</label>
+                <label><input type="radio" name="dunit" value="m3">立米</label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="fields" style="margin-top:18px">
+          <div class="field">
+            <label>薪の種類</label>
+            <div class="radio-row" id="prodRow">
+              <label><input type="radio" name="prod" value="home" checked>家庭用 30cm</label>
+              <label id="rackLab"><input type="radio" name="prod" value="rack">業務用 1m</label>
+            </div>
+          </div>
+        </div>
+        <p class="hint" id="prodNote" style="margin: 10px 0 0"></p>
+        <p class="hint" style="margin: 5px 0 0">割っていない丸太もお出しできます。量と価格は個別にご相談ください。</p>
+      </section>
+
+      <section class="equiv">
+        <h2>この量はどれくらいか</h2>
+        <p class="hint">同じ量を、別の言い方に直したものです。</p>
+        <div class="equiv-grid" id="equiv"></div>
+      </section>
+
+      <section>
+        <div class="step">STEP 2</div>
+        <h2>お届け方法</h2>
+        <p class="hint">お届け先をお選びください。土場は西粟倉村長尾657-1です。</p>
+        <div class="zonebox">
+          <div style="display:flex;flex-direction:column;gap:11px;margin-bottom:13px">
+            <label class="chk">
+              <input type="radio" name="deli" value="village">
+              <span>西粟倉村内へお届け（配送料無料）
+                <span class="c-sub">村内は配送料をいただきません。薪棚へのお積み込みまで承ります。</span>
+              </span>
+            </label>
+            <label class="chk">
+              <input type="radio" name="deli" value="out" checked>
+              <span>村外へお届け
+                <span class="c-sub">土場からの片道距離で配送料が決まります。</span>
+              </span>
+            </label>
+            <label class="chk">
+              <input type="radio" name="deli" value="pickup">
+              <span>工場引き取り（配送料なし）
+                <span class="c-sub">土場までお越しいただく形です。積み込みはこちらでいたします。</span>
+              </span>
+            </label>
+          </div>
+          <div class="fields" id="kmWrap">
+            <div class="field">
+              <label for="km">片道の距離</label>
+              <div class="inline"><input type="number" id="km" min="0" step="1" value="30"><span class="unit">km</span></div>
+            </div>
+            <div class="field">
+              <label>区分</label>
+              <div class="inline" style="padding-bottom:7px"><strong id="zoneName" style="font-size:15px">〜30km</strong></div>
+            </div>
+          </div>
+          <div class="zonecalc" id="zoneCalc"></div>
+        </div>
+      </section>
+
+      <section>
+        <div class="step">STEP 3</div>
+        <h2>条件</h2>
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <label class="chk">
+            <input type="checkbox" id="teiki">
+            <span>定期便にする（商品代 13%引き）
+              <span class="c-sub">毎月決まった日にお届けします。お届け日をこちらで確保できるぶん、お安くできます。最低3ヶ月からのお申し込みです。</span>
+            </span>
+          </label>
+          <label class="chk">
+            <input type="checkbox" id="tanaire" checked>
+            <span>薪棚へのお積み込みまで行う
+              <span class="c-sub">降ろして終わりではなく、棚に積むところまで承ります。</span>
+            </span>
+          </label>
+        </div>
+      </section>
+
+      <section class="ref">
+        <h2>換算の目安</h2>
+        <p class="hint">すべて自社の実測値です。スギ・ヒノキの乾燥薪、密度375kg/m³、薪1本530g。</p>
+        <div class="scroller">
+          <table class="ref-tbl">
+            <thead><tr><th>荷姿</th><th>重さ</th><th>棚 90×200×40cm で</th><th>30cm薪</th></tr></thead>
+            <tbody>
+              <tr><td>桶 1個<br><span style="font-size:11px;color:var(--ink-2)">上の直径31cm・下25cm・高さ17cm</span></td><td class="n">5.3kg</td><td>—</td><td class="n">10本</td></tr>
+              <tr><td>カゴ 1杯（満タン）</td><td class="n">40kg</td><td>下から1/4</td><td class="n">約75本</td></tr>
+              <tr><td>フレコンバッグ 小</td><td class="n">110kg</td><td>2/3</td><td class="n">約207本</td></tr>
+              <tr><td>フレコンバッグ 大</td><td class="n">200kg</td><td>ちょうど1つ分</td><td class="n">約377本</td></tr>
+              <tr><td>軽トラック 1杯（お引き取り）</td><td class="n">330kg</td><td>1.7つ分</td><td class="n">約623本</td></tr>
+              <tr><td>2tトラック 1杯</td><td class="n">1,000kg</td><td>5つ分</td><td class="n">約1,887本</td></tr>
+              <tr><td>業務用薪 1ラック<br><span style="font-size:11px;color:var(--ink-2)">キャンプファイヤー向け</span></td><td class="n">800kg</td><td>4つ分</td><td class="n">1m材</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+    </div>
+
+    <div class="col side">
+      <div class="quote">
+        <div class="q-head">
+          <div class="q-k">お見積り</div>
+          <div class="q-t" id="qTitle">焚き火</div>
+        </div>
+        <div class="q-body">
+          <table class="q-rows"><tbody id="qRows"></tbody></table>
+          <div class="q-total">
+            <span class="t-k">合計（税込）</span>
+            <span class="t-v" id="qTotal">0円</span>
+          </div>
+          <div class="q-per" id="qPer"></div>
+          <div class="q-warn" id="qWarn"></div>
+          <button class="act primary" id="mailBtn">この内容で問い合わせる</button>
+          <div class="sendbox" id="sendBox" hidden>
+            <div class="s-h">お問い合わせの内容をコピーしました</div>
+            <p class="s-t">下のメールアドレスに貼り付けてお送りください。お電話でもかまいません。</p>
+            <button class="s-row" data-copy="r.tommy.motoyu@gmail.com"><span class="s-k">メール</span><span class="s-v">r.tommy.motoyu@gmail.com</span><span class="s-c">コピー</span></button>
+            <button class="s-row" data-copy="08062867435"><span class="s-k">お電話</span><span class="s-v">080-6286-7435</span><span class="s-c">コピー</span></button>
+            <button class="s-open" id="mailOpen">メールアプリを開いてみる</button>
+          </div>
+          <button class="act" id="copyBtn">見積り内容をコピー</button>
+          <div class="contact">
+            <strong>株式会社motoyu　薪工場</strong><br>
+            担当　富岡 瑠加（とみおか るか）<br>
+            TEL　080-6286-7435<br>
+            MAIL　r.tommy.motoyu@gmail.com<br>
+            土場　岡山県英田郡西粟倉村長尾657-1
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    価格は2026年10月版の価格表に基づきます。乾燥期間は3ヶ月以上、含水率15〜20%。スギ・ヒノキの針葉樹です。ここに出る金額は目安ですので、大口のご注文や100kmを超えるお届けは、個別にお見積りいたします。
+  </footer>
+</div>
+
+<div class="totalbar">
+  <span class="b-k">合計（税込）</span>
+  <span class="b-v" id="barTotal">0円</span>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+
+/* ═══ 定数 ═══ */
+const DENSITY   = 375;    // kg/m³（実積）
+const FILL      = 0.76;   // 棚に整然と積んだときの充填率
+const KG_PER_BIN = 5.3;   // 1桶 = 30cm薪10本
+const KG_PER_LOG = 0.53;  // 30cm薪1本
+const COST_HOME_KG = 5.5; // 端材由来 2,070円/m³ ÷ 375
+const COST_RACK_KG = 10.5;// 原木5,655円＋製造人件費2,760円 ÷ 800kg
+const KG_PER_TRIP = 1000; // 配送1便の上限
+const SHELF_REF = 90*200*40/1e6 * FILL * DENSITY; // 基準の棚 90×200×40cm ≒ 205kg
+
+/* ═══ 設定（画面で変更可） ═══ */
+const cfg = { wage:1380, fuel:175, mil:14, other:7.5, speed:40, kago:40 };
+
+/* ═══ 荷姿 ═══ */
+function packages(prod){
+  if (prod === "rack") return [
+    { name:"業務用薪　1ラック",    kg:800, yen:28000, bag:0, m3:2.2, deliver:true },
+    { name:"業務用薪　1/2ラック",  kg:400, yen:16000, bag:0, m3:1.1, deliver:true },
+    { name:"業務用薪　1/4ラック",  kg:200, yen:9000,  bag:0, m3:0.6, deliver:true }
+  ];
+  return [
+    { name:"2tトラック　1杯",       kg:1000,     yen:52000, bag:0,    m3:4.0,  deliver:true },
+    { name:"軽トラック　1杯",       kg:330,      yen:18000, bag:0,    m3:1.3,  deliver:false },
+    { name:"フレコンバッグ　大",    kg:200,      yen:12000, bag:1200, m3:0.8,  deliver:true },
+    { name:"フレコンバッグ　小",    kg:110,      yen:7000,  bag:800,  m3:0.43, deliver:true },
+    { name:"カゴ　1杯",             kg:cfg.kago, yen:3000,  bag:0,    m3:0.15, deliver:true, max:2 }
+  ];
+}
+
+/* ═══ 配送区分（価格表） ═══ */
+const ZONES = [
+  { max:0,   name:"工場引き取り", yen:0 },
+  { max:30,  name:"〜30km",      yen:5000 },
+  { max:60,  name:"30〜60km",    yen:8000 },
+  { max:100, name:"60〜100km",   yen:12000 },
+  { max:1e9, name:"100km超",     yen:0, ask:true }
+];
+const zoneOf = km => ZONES.find(z => km <= z.max);
+/* 村内は配送料をいただかない。5kmは原価（燃料・時間）の計算にだけ使う片道の目安 */
+const VILLAGE = { name:"村内", yen:0, village:true };
+const VILLAGE_KM = 5;
+
+/* ═══ 用途 ═══ */
+const MODES = [
+  { id:"dai",   name:"焚き火台で焚き火", sub:"2〜5人",        eg:"1時間に約2.5kg", prod:"home", unit:"時間", kgPer:2.5, def:4,  max:24,  rep:true,
+    notes:["乾燥3ヶ月以上の針葉樹です。着火が早く、炎がよく上がります。","小分け（束・桶）でのお届けは承っておりません。"] },
+  { id:"jika",  name:"直火で焚き火",     sub:"10〜20人で囲む", eg:"1時間に約8kg",   prod:"home", unit:"時間", kgPer:8,   def:3,  max:12,  rep:true,
+    notes:["焚き火台の約3倍の消費になります。","風のある日は1〜2割多めに見てください。"] },
+  { id:"camp",  name:"キャンプファイヤー", sub:"井桁・大人数", eg:"1時間に約50kg",  prod:"rack", unit:"時間", kgPer:50,  def:4,  max:12,  rep:true,
+    notes:["半分を井桁に組み、半分を継ぎ足し用に置いてください。全部を井桁にすると40〜60分で崩れます。","針葉樹はヤニで爆ぜます。観客席は広葉樹のときより離してください。","直径5〜8cmの中割りがないと1m材に火が移りません。","1m材の荷下ろしは2人で20分ほどかかります。"] },
+  { id:"stove", name:"薪ストーブ",       sub:"1日焚いた日数",  eg:"1日に約18kg",    prod:"home", unit:"日",   kgPer:18,  def:30, max:150, rep:false,
+    notes:["針葉樹は燃焼が速いため、広葉樹より多めに見ておいてください。","1シーズン（4ヶ月・毎日）なら約2,200kgが目安です。"] },
+  { id:"danro", name:"暖炉",             sub:"夜に数時間×晩数", eg:"1晩に約15kg",   prod:"home", unit:"晩",   kgPer:15,  def:20, max:120, rep:false,
+    notes:["開放型の暖炉では針葉樹が爆ぜます。スクリーンがあると安心です。","終日焚かれる場合は1日25kgほど見てください。"] },
+  { id:"bbq",   name:"薪火BBQ",          sub:"1回3〜4時間",    eg:"1回に約12kg",    prod:"home", unit:"回",   kgPer:12,  def:10, max:100, rep:false,
+    notes:["針葉樹は火力の立ち上がりが早く、熾火にするまでが短く済みます。","熾火が続きにくいので、足す回数は広葉樹より増えます。"] },
+  { id:"pizza", name:"ピザ窯",           sub:"営業回数",       eg:"1回に約12kg",    prod:"home", unit:"回",   kgPer:12,  def:20, max:100, rep:false,
+    notes:["針葉樹は立ち上がりが早く、窯の温度を短時間で上げられます。","煤が出やすいので、仕上げの火は細めの薪で調整してください。"] },
+  { id:"sauna", name:"サウナストーブ",   sub:"1回の稼働",      eg:"1回に約20kg",    prod:"home", unit:"回",   kgPer:20,  def:15, max:120, rep:false,
+    notes:["針葉樹は高温が出やすく、サウナに向いています。","連続で焚かれる場合は、途中で足す手間を見込んでください。"] },
+  { id:"oke",   name:"お店で桶売り",     sub:"仕入れて小分け",  eg:"1桶 = 薪10本",   prod:"home", unit:"桶",   kgPer:KG_PER_BIN, def:35, max:300, rep:false,
+    notes:["1桶は薪10本で数えてください。重さで分けると量がばらつきます。","桶は上の直径31cm・下の直径25cm・高さ17cm（容量約10.5L）。30cmの薪を立てて入れると10本で埋まり、上に13cmほど出る形になります。","1桶700円で販売すると、1袋（200kg・約38個）で売上26,600円になります。","1袋を小分けする作業は1時間ほどです。"] }
+];
+
+/* ═══ 状態 ═══ */
+const st = { staff:false, tab:"use", mode:"stove", amt:30, rep:1,
+             sw:90, sh:200, sd:40, stimes:1,
+             dqty:200, dunit:"kg",
+             prod:"home", deli:"out", pickup:false, km:30, teiki:false, tanaire:true, disc:0 };
+
+function setDeli(v){ st.deli = v; st.pickup = (v === "pickup"); }
+
+/* ═══ 小道具 ═══ */
+const yen = n => Math.round(n).toLocaleString("ja-JP") + "円";
+const num = n => Math.round(n).toLocaleString("ja-JP");
+const el  = id => document.getElementById(id);
+const mode = () => MODES.find(m => m.id === st.mode);
+
+/* ═══ 必要量 ═══ */
+function needKg(){
+  if (st.tab === "use")   { const m = mode(); return Math.max(0, st.amt * m.kgPer * (m.rep ? st.rep : 1)); }
+  if (st.tab === "shelf") { return Math.max(0, st.sw*st.sh*st.sd/1e6 * FILL * DENSITY * st.stimes); }
+  return Math.max(0, st.dunit === "m3" ? st.dqty * DENSITY : st.dqty);
+}
+
+/* ═══ 荷姿の組み合わせ（最安） ═══ */
+function pack(need, pkgs){
+  const empty = { counts:pkgs.map(()=>0), kg:0, cost:0, bag:0, m3:0, n:0 };
+  if (need <= 0 || !pkgs.length) return empty;
+  const target = need * 0.95;            // 5%の不足は許容（1袋余計に積まないため）
+  const unit = pkgs[0];
+  const preset = Math.max(0, Math.floor(target / unit.kg) - 2);
+  const rest = target - preset * unit.kg;
+  const caps = pkgs.map(p => p.max !== undefined ? p.max : (p.kg >= 400 ? 4 : p.kg >= 150 ? 6 : 10));
+  const idx = pkgs.map(()=>0);
+  let best = null;
+
+  const walk = i => {
+    if (i === pkgs.length){
+      let kg=0, cost=0, bag=0, m3=0, n=0;
+      for (let k=0;k<pkgs.length;k++){
+        kg+=idx[k]*pkgs[k].kg; cost+=idx[k]*pkgs[k].yen;
+        bag+=idx[k]*pkgs[k].bag; m3+=idx[k]*pkgs[k].m3; n+=idx[k];
+      }
+      if (kg < rest - 0.01) return;
+      const c = { counts:idx.slice(), kg, cost, bag, m3, n };
+      if (!best || c.cost < best.cost ||
+         (c.cost === best.cost && (c.n < best.n || (c.n === best.n && c.kg < best.kg)))) best = c;
+      return;
+    }
+    for (let v=0; v<=caps[i]; v++){ idx[i]=v; walk(i+1); }
+    idx[i]=0;
+  };
+  walk(0);
+  if (!best) best = { counts:pkgs.map(()=>0), kg:0, cost:0, bag:0, m3:0, n:0 };
+  if (preset > 0){
+    best.counts[0]+=preset; best.kg+=preset*unit.kg; best.cost+=preset*unit.yen;
+    best.bag+=preset*unit.bag; best.m3+=preset*unit.m3; best.n+=preset;
+  }
+  return best;
+}
+
+/* ═══ 運搬手段 ═══ */
+function carrier(kg, pickup){
+  if (pickup) return { name:"お引き取り", detail:"土場で積み込みます。フォークリフトを使うので待ち時間は10分ほどです。", lv:"ok" };
+  if (kg <= 100)  return { name:"富岡さんの軽バン", detail:"カゴ2杯まで。日程を自分で決められます。", lv:"ok" };
+  if (kg <= 400)  return { name:"2tトラック（山本さん）", detail:"フレコン大2袋まで。山本さんのシフト調整が必要です。お届け日は即答できません。", lv:"warn" };
+  return { name:"岡田林業さんへ依頼", detail:"フレコン3袋以上は外注です。日程と外注費を先に確認してください。", lv:"bad" };
+}
+
+/* ═══ 計算 ═══ */
+function calc(){
+  const all = packages(st.prod);
+  const need = needKg();
+  // カゴは2個しかなく回収も要るので、カゴだけで足りる量のときしか使わない
+  const pkgs = (st.pickup ? all : all.filter(p => p.deliver))
+               .filter(p => !p.max || need <= p.kg * p.max / 0.95);
+  const p = pack(need, pkgs);
+  const village = st.deli === "village";
+  const km = st.pickup ? 0 : village ? VILLAGE_KM : Math.max(0, st.km);
+  const z = village ? VILLAGE : zoneOf(km);
+  const trips = p.kg > 0 && !st.pickup ? Math.ceil(p.kg / KG_PER_TRIP) : 0;
+
+  // 売価
+  const goods = st.teiki && p.cost > 0 ? Math.round(p.cost * 0.87 / 100) * 100 : p.cost;
+  const ship  = st.pickup || z.ask ? 0 : z.yen * trips;
+  const disc  = Math.min(st.disc, goods + ship);
+  const total = Math.max(0, goods + ship - disc);
+
+  // 作業時間（分）
+  const loadMin   = p.kg > 0 ? 10 + p.kg * 0.05 : 0;
+  const unloadMin = st.pickup || p.kg === 0 ? 0 : (st.tanaire ? 5 + p.kg * 0.10 : 5 + p.kg * 0.03);
+  const driveMin  = st.pickup ? 0 : km * 2 * 60 / Math.max(1, cfg.speed);
+  const perMin    = cfg.wage / 60;
+
+  // 原価
+  const kgRate   = st.prod === "rack" ? COST_RACK_KG : COST_HOME_KG;
+  const wood     = p.kg * kgRate + p.bag;
+  const loadYen  = loadMin * perMin;
+  const driveYen = driveMin * perMin;
+  const unloadYen= unloadMin * perMin;
+  const carYen   = st.pickup ? 0 : km * 2 * (cfg.fuel / Math.max(1,cfg.mil) + cfg.other);
+  const shipReal = driveYen + unloadYen + carYen;
+  const cost     = wood + loadYen + shipReal;
+  const outsourced = !st.pickup && p.kg > 400;
+
+  return { all, pkgs, need, p, km, z, trips, goods, ship, disc, total,
+           loadMin, unloadMin, driveMin, wood, loadYen, driveYen, unloadYen, carYen,
+           shipReal, cost, outsourced,
+           profit: total - cost,
+           rate: total > 0 ? (total - cost) / total : 0,
+           car: carrier(p.kg, st.pickup) };
+}
+
+/* ═══ 描画 ═══ */
+function drawUses(){
+  el("uses").innerHTML = MODES.map(m => `
+    <button type="button" class="use" data-mode="${m.id}" aria-pressed="${m.id === st.mode}">
+      <span class="u-name">${m.name}</span>
+      <span class="u-sub">${m.sub}</span>
+      <span class="u-eg">${m.eg}</span>
+    </button>`).join("");
+}
+
+function drawInputs(){
+  el("tab-use").hidden    = st.tab !== "use";
+  el("tab-shelf").hidden  = st.tab !== "shelf";
+  el("tab-direct").hidden = st.tab !== "direct";
+  document.querySelectorAll("[data-tab]").forEach(b =>
+    b.setAttribute("aria-pressed", b.dataset.tab === st.tab));
+
+  if (st.tab === "use"){
+    const m = mode();
+    el("amtLab").textContent = m.unit;
+    el("amtUnit").textContent = m.unit;
+    el("repWrap").hidden = !m.rep;
+    el("amt").value = st.amt;
+    const r = el("amtRange");
+    r.max = m.max; r.value = Math.min(st.amt, m.max);
+    el("rep").value = st.rep;
+  }
+  if (st.tab === "shelf"){
+    const m3 = st.sw*st.sh*st.sd/1e6;
+    const kg = m3 * FILL * DENSITY;
+    el("shelfOut").innerHTML =
+      `この棚は <strong>${m3.toFixed(2)}立米</strong>、薪にして <strong>${num(kg)}kg</strong>。` +
+      `フレコンバッグ大で約${(kg/200).toFixed(1)}袋、カゴで約${Math.round(kg/cfg.kago)}杯分です。` +
+      (st.stimes > 1 ? `　${st.stimes}回ぶんで合計 <strong>${num(kg*st.stimes)}kg</strong>。` : "");
+  }
+  el("kmWrap").hidden = st.deli !== "out";
+  el("zoneName").textContent = zoneOf(Math.max(0, st.km)).name;
+
+  /* 業務用1m材はキャンプファイヤーのときだけ選べる */
+  const rackOK = st.tab === "use" && st.mode === "camp";
+  const rackIn = document.querySelector('input[name="prod"][value="rack"]');
+  rackIn.disabled = !rackOK;
+  el("rackLab").style.opacity = rackOK ? "1" : "0.42";
+  el("rackLab").style.cursor = rackOK ? "pointer" : "not-allowed";
+  if (!rackOK && st.prod === "rack"){
+    st.prod = "home";
+    document.querySelector('input[name="prod"][value="home"]').checked = true;
+  }
+  el("prodNote").textContent = rackOK
+    ? "キャンプファイヤーには、長さ1mの業務用薪をお出ししています。"
+    : "業務用の1m材は、キャンプファイヤー向けのみのお取り扱いです。";
+}
+
+function drawEquiv(){
+  const need = needKg();
+  const rows = [
+    { k:"重さ",             v:num(need),                     u:"kg" },
+    { k:"棚 90×200×40cm",   v:(need/SHELF_REF).toFixed(1),   u:"つ分" },
+    { k:"カゴ（満タン）",   v:num(need/cfg.kago),            u:"杯" },
+    { k:"桶（薪10本）",     v:num(need/KG_PER_BIN),          u:"個" },
+    { k:"30cm薪",           v:num(need/KG_PER_LOG),          u:"本" },
+    { k:"焚き火台で",       v:num(need/2.5),                 u:"時間" }
+  ];
+  el("equiv").innerHTML = rows.map(r =>
+    `<div class="eq"><div class="eq-k">${r.k}</div><div class="eq-v">${r.v} <small>${r.u}</small></div></div>`).join("");
+}
+
+function drawZoneCalc(){
+  const c = calc();
+  if (st.pickup){
+    el("zoneCalc").innerHTML = `<div>配送料はかかりません。積み込みはこちらで行います。</div>`;
+    return;
+  }
+  if (st.deli === "village"){
+    el("zoneCalc").innerHTML = `<div><b>村内（西粟倉村）</b>　配送料 <b>無料</b>　薪棚へのお積み込みまで承ります。</div>`;
+    return;
+  }
+  const listYen = c.z.ask ? "個別にお見積りします" : yen(c.z.yen * Math.max(1, c.trips));
+  el("zoneCalc").innerHTML =
+    `<div><b>${c.z.name}</b>　配送料 <b>${listYen}</b>${c.trips > 1 ? `（${c.trips}便）` : ""}</div>`;
+}
+
+function drawQuote(){
+  const c = calc();
+  el("qTitle").textContent =
+    st.tab === "use" ? mode().name :
+    st.tab === "shelf" ? `薪棚 ${st.sw}×${st.sh}×${st.sd}cm` : "ご指定の量";
+
+  const rows = [];
+  c.p.counts.forEach((n,i) => {
+    if (n > 0) rows.push(
+      `<tr><td>${c.pkgs[i].name} × ${n}<br><span class="q-sub">約${num(c.pkgs[i].kg*n)}kg</span></td>` +
+      `<td class="n">${yen(c.pkgs[i].yen*n)}</td></tr>`);
+  });
+  if (!rows.length) rows.push(`<tr><td colspan="2" style="color:var(--ink-2)">量を入れてください</td></tr>`);
+  if (st.teiki && c.p.cost > 0)
+    rows.push(`<tr class="disc"><td>定期便 13%引き</td><td class="n">▲${num(c.p.cost - c.goods)}円</td></tr>`);
+  if (!st.pickup && c.p.kg > 0)
+    rows.push(`<tr><td>配送料（${c.z.name}）${c.trips > 1 ? `<br><span class="q-sub">${c.trips}便に分けてお届け</span>` : ""}</td>` +
+              `<td class="n">${c.z.ask ? "要相談" : c.z.village ? "無料" : yen(c.ship)}</td></tr>`);
+  if (st.pickup && c.p.kg > 0)
+    rows.push(`<tr><td>配送料<br><span class="q-sub">工場引き取り</span></td><td class="n">無料</td></tr>`);
+  if (c.disc > 0)
+    rows.push(`<tr class="disc"><td>お値引き</td><td class="n">▲${num(c.disc)}円</td></tr>`);
+  el("qRows").innerHTML = rows.join("");
+
+  el("qTotal").textContent = yen(c.total);
+  el("barTotal").textContent = yen(c.total);
+
+  el("qPer").innerHTML = c.p.kg > 0
+    ? `お届けする量 約${num(c.p.kg)}kg（90×200×40cmの棚で${(c.p.kg/SHELF_REF).toFixed(1)}つ分）<br>1kgあたり ${num(c.total/c.p.kg)}円`
+    : "";
+
+  // お伝えすること
+  const notes = st.tab === "use" ? mode().notes.slice() : [
+    "乾燥期間は3ヶ月以上、含水率15〜20%です。",
+    "小分け（束・桶）でのお届けは承っておりません。"
+  ];
+  if (c.p.kg > c.need * 1.25 && c.p.kg > 0){
+    const over = c.p.kg - c.need;
+    notes.unshift(`荷姿の都合で、ご希望より約${num(over)}kg多めになります。余った分は雨の当たらない場所で保管できます。`);
+  } else if (c.p.kg > 0 && c.p.kg < c.need * 0.99){
+    notes.unshift(`ちょうどの荷姿がないため、約${num(c.need - c.p.kg)}kg少なめの組み合わせにしています。きっちり満たしたい場合はお知らせください。`);
+  }
+  if (!st.pickup && c.p.kg > 0 && c.ship >= c.goods && !c.z.ask)
+    notes.unshift("配送料が商品代と同じか上回ります。お引き取りいただくほうがお得です。");
+  if (st.tab === "shelf" && st.prod === "rack" && st.sd < 90)
+    notes.unshift(`業務用の1m材は、奥行${st.sd}cmの棚には入りません。家庭用30cmをご検討ください。`);
+  if (c.p.kg >= 800)
+    notes.push("まとまった数量は乾燥の都合があります。納品時期を先にご相談ください。");
+  if (st.teiki && c.p.cost > 0)
+    notes.push("定期便は3ヶ月以上の継続をお願いしております。乾燥に3ヶ月かかるため、お申し込みをいただいてから生産の計画を立てております。");
+  if (st.tanaire && !st.pickup && c.p.kg > 0)
+    notes.push(`薪棚への積み込みまで承ります。この量だと現地で${Math.round(c.unloadMin)}分ほどです。`);
+  if (c.z.village && c.p.kg > 0)
+    notes.push("村内へのお届けは配送料をいただいておりません。");
+  if (c.z.ask && !st.pickup)
+    notes.push("100kmを超えるため、配送料は個別にお見積りいたします。");
+  el("qWarn").innerHTML = `<div class="w-h">ご確認ください</div><ul>${notes.map(n=>`<li>${n}</li>`).join("")}</ul>`;
+
+}
+
+/* ═══ 問い合わせメール ═══ */
+function inquiryBody(){
+  return quoteText()
+    + "\n──────────────\n上記の内容で検討しています。\n\n"
+    + "お名前：\nご連絡先：\nお届け先のご住所：\nご希望の時期：\nご質問など：\n";
+}
+function inquiryMail(){
+  return "mailto:r.tommy.motoyu@gmail.com"
+       + "?subject=" + encodeURIComponent("薪のお見積りについて")
+       + "&body=" + encodeURIComponent(inquiryBody());
+}
+
+function render(){
+  el("sendBox").hidden = true;   /* 内容が変わったらコピー済みの案内は閉じる */
+  drawInputs(); drawEquiv(); drawZoneCalc(); drawQuote();
+}
+
+/* ═══ 文面 ═══ */
+function quoteText(){
+  const c = calc();
+  const L = [];
+  L.push("お見積り");
+  L.push("");
+  c.p.counts.forEach((n,i) => {
+    if (n > 0) L.push(`${c.pkgs[i].name} × ${n}　約${num(c.pkgs[i].kg*n)}kg　${yen(c.pkgs[i].yen*n)}`);
+  });
+  if (st.teiki && c.p.cost > 0) L.push(`定期便 13%引き　▲${num(c.p.cost - c.goods)}円`);
+  if (c.p.kg > 0) L.push(st.pickup
+    ? "配送料　無料（工場引き取り）"
+    : c.z.village
+    ? "配送料　無料（村内へお届け）"
+    : `配送料（${c.z.name}${c.trips > 1 ? "・" + c.trips + "便" : ""}）　${c.z.ask ? "要相談" : yen(c.ship)}`);
+  if (c.disc > 0) L.push(`お値引き　▲${num(c.disc)}円`);
+  L.push("──────────────");
+  L.push(`合計　${yen(c.total)}（税込）`);
+  L.push("");
+  L.push(`お届けする量　約${num(c.p.kg)}kg`);
+  L.push("");
+  const notes = st.tab === "use" ? mode().notes : ["乾燥期間は3ヶ月以上、含水率15〜20%です。"];
+  notes.forEach(n => L.push("・" + n));
+  if (st.tanaire && !st.pickup && c.p.kg > 0) L.push("・薪棚へのお積み込みまで承ります。");
+  L.push("");
+  L.push("株式会社motoyu　薪工場");
+  L.push("担当　富岡 瑠加");
+  L.push("TEL 080-6286-7435 / r.tommy.motoyu@gmail.com");
+  return L.join("\n");
+}
+
+function toast(msg){
+  const t = el("toast");
+  t.textContent = msg; t.classList.add("on");
+  setTimeout(() => t.classList.remove("on"), 1900);
+}
+
+/* ═══ 操作 ═══ */
+document.querySelectorAll("[data-tab]").forEach(b =>
+  b.addEventListener("click", () => { st.tab = b.dataset.tab; render(); }));
+
+el("uses").addEventListener("click", e => {
+  const b = e.target.closest("[data-mode]"); if (!b) return;
+  st.mode = b.dataset.mode;
+  const m = mode();
+  st.amt = m.def; st.rep = 1; st.prod = m.prod;
+  document.querySelectorAll('input[name="prod"]').forEach(r => r.checked = r.value === st.prod);
+  drawUses(); render();
+});
+
+el("amt").addEventListener("input", e => {
+  st.amt = Math.max(0, Number(e.target.value) || 0);
+  el("amtRange").value = Math.min(st.amt, mode().max);
+  drawEquiv(); drawZoneCalc(); drawQuote();
+});
+el("amtRange").addEventListener("input", e => {
+  st.amt = Number(e.target.value); el("amt").value = st.amt;
+  drawEquiv(); drawZoneCalc(); drawQuote();
+});
+el("rep").addEventListener("input", e => {
+  st.rep = Math.max(1, Number(e.target.value) || 1);
+  drawEquiv(); drawZoneCalc(); drawQuote();
+});
+
+["sw","sh","sd","stimes"].forEach(id =>
+  el(id).addEventListener("input", e => {
+    st[id] = Math.max(1, Number(e.target.value) || 1); render();
+  }));
+document.querySelectorAll("[data-shelf]").forEach(b =>
+  b.addEventListener("click", () => {
+    const [w,h,d] = b.dataset.shelf.split(",").map(Number);
+    st.sw = w; st.sh = h; st.sd = d;
+    el("sw").value = w; el("sh").value = h; el("sd").value = d;
+    render();
+  }));
+
+el("dqty").addEventListener("input", e => {
+  st.dqty = Math.max(0, Number(e.target.value) || 0);
+  drawEquiv(); drawZoneCalc(); drawQuote();
+});
+document.querySelectorAll('input[name="dunit"]').forEach(r =>
+  r.addEventListener("change", e => {
+    st.dunit = e.target.value;
+    el("dLab").textContent = st.dunit === "m3" ? "体積" : "重さ";
+    el("dUnit").textContent = st.dunit === "m3" ? "立米" : "kg";
+    el("dqty").step = st.dunit === "m3" ? 0.1 : 10;
+    if (st.dunit === "m3" && st.dqty > 50){ st.dqty = 1; el("dqty").value = 1; }
+    if (st.dunit === "kg"  && st.dqty < 10){ st.dqty = 200; el("dqty").value = 200; }
+    drawEquiv(); drawZoneCalc(); drawQuote();
+  }));
+
+document.querySelectorAll('input[name="prod"]').forEach(r =>
+  r.addEventListener("change", e => { st.prod = e.target.value; render(); }));
+
+document.querySelectorAll('input[name="deli"]').forEach(r =>
+  r.addEventListener("change", e => { setDeli(e.target.value); render(); }));
+el("km").addEventListener("input", e => { st.km = Math.max(0, Number(e.target.value) || 0); render(); });
+el("teiki").addEventListener("change", e => { st.teiki = e.target.checked; drawQuote(); });
+el("tanaire").addEventListener("change", e => { st.tanaire = e.target.checked; drawZoneCalc(); drawQuote(); });
+
+function copy(txt, msg){
+  if (navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(txt).then(() => toast(msg)).catch(() => fallback(txt));
+  } else fallback(txt);
+}
+
+el("copyBtn").addEventListener("click", () => copy(quoteText(), "コピーしました"));
+
+/* 問い合わせ。この画面は枠の中で動いているため mailto: への遷移がブロックされる。
+   本文をコピーして宛先を出し、メールアプリは別タブで開くことだけ試す。 */
+el("mailBtn").addEventListener("click", () => {
+  copy("件名：薪のお見積りについて\n\n" + inquiryBody(), "お問い合わせの内容をコピーしました");
+  el("sendBox").hidden = false;
+});
+el("mailOpen").addEventListener("click", () => {
+  let w = null;
+  try { w = window.open(inquiryMail(), "_blank"); } catch(e){}
+  if (!w) toast("開けませんでした。コピーした内容を貼り付けてお送りください");
+});
+document.querySelectorAll("[data-copy]").forEach(b =>
+  b.addEventListener("click", () => copy(b.dataset.copy, "コピーしました")));
+function fallback(txt){
+  const ta = document.createElement("textarea");
+  ta.value = txt;
+  ta.style.cssText = "position:fixed;left:16px;right:16px;bottom:120px;height:40vh;z-index:50;font-size:12px";
+  document.body.appendChild(ta); ta.select();
+  toast("選択しました。長押しでコピーしてください");
+  setTimeout(() => ta.remove(), 12000);
+}
+
+/* ═══ 起動 ═══ */
+/* 村内チラシのQRは #muranai つき。村内を選んだ状態で開く */
+if (location.hash.replace("#","").toLowerCase() === "muranai"){
+  setDeli("village");
+  el("villageBanner").hidden = false;
+}
+document.querySelectorAll('input[name="deli"]').forEach(r => r.checked = r.value === st.deli);
+drawUses();
+render();
+</script>
+</body>
+</html>
+
+</body></html>
